@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from typing import Optional
+from app.models.course import CourseCategory
 
 
 class CourseBase(BaseModel):
@@ -11,7 +12,8 @@ class CourseBase(BaseModel):
     tutorial_hours: int = Field(default=0, ge=0, examples=[1])
     credits: int = Field(..., gt=0, examples=[4])
     department_id: int = Field(..., gt=0)
-    is_elective: bool = Field(default=False)
+    course_category: CourseCategory = Field(default=CourseCategory.CORE, description="Course type classification")
+    is_elective: bool = Field(default=False, deprecated=True, description="DEPRECATED: Use course_category instead")
     elective_group_id: Optional[int] = Field(None, gt=0)
     requires_lab: bool = Field(default=False)
     min_room_capacity: Optional[int] = Field(None, gt=0)
@@ -51,6 +53,7 @@ class CourseUpdate(BaseModel):
     tutorial_hours: Optional[int] = Field(None, ge=0)
     credits: Optional[int] = Field(None, gt=0)
     department_id: Optional[int] = Field(None, gt=0)
+    course_category: Optional[CourseCategory] = None
     is_elective: Optional[bool] = None
     elective_group_id: Optional[int] = Field(None, gt=0)
     requires_lab: Optional[bool] = None

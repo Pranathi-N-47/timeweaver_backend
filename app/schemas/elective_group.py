@@ -3,10 +3,10 @@ from typing import Optional
 
 
 class ElectiveGroupBase(BaseModel):
-    """Base ElectiveGroup schema"""
-    name: str = Field(..., min_length=1, max_length=100, examples=["Engineering Electives Group 1"])
-    description: Optional[str] = Field(None, examples=["First set of engineering electives"])
-    semester_id: int = Field(..., gt=0)
+    """Base ElectiveGroup schema - permanent groups"""
+    name: str = Field(..., min_length=1, max_length=100, examples=["PE1", "FE1-EVS"])
+    description: Optional[str] = Field(None, examples=["Professional Elective Group 1"])
+    participating_department_ids: Optional[list[int]] = Field(default=[], description="Department IDs for cross-department electives (FE)")
 
 
 class ElectiveGroupCreate(ElectiveGroupBase):
@@ -18,7 +18,7 @@ class ElectiveGroupUpdate(BaseModel):
     """Schema for updating an elective group"""
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = None
-    semester_id: Optional[int] = Field(None, gt=0)
+    participating_department_ids: Optional[list[int]] = None
 
 
 class ElectiveGroupResponse(ElectiveGroupBase):

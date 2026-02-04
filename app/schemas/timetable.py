@@ -195,10 +195,13 @@ class TimetableSlotResponse(BaseModel):
     course_title: Optional[str]
     room_id: int
     room_number: str
-    time_slot_id: int
-    time_slot: str
-    faculty_id: Optional[int]
-    faculty_name: Optional[str]
+    start_slot_id: int = Field(..., description="Starting time slot ID")
+    duration_slots: int = Field(..., ge=1, le=5, description="Number of consecutive slots (1-5)")
+    time_slot: str = Field(..., description="Human-readable time range")
+    primary_faculty_id: Optional[int] = Field(None, description="Main instructor")
+    faculty_name: Optional[str] = None
+    assisting_faculty_ids: Optional[list[int]] = Field(default=[], description="Assisting faculty for labs")
+    batch_number: Optional[int] = Field(None, description="Lab batch number (1-10)")
     day_of_week: int
     is_locked: bool
     created_at: datetime

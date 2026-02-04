@@ -125,8 +125,9 @@ class TimetableSlot(Base):
     Individual class session assignment in a timetable.
     
     Represents one scheduled class: assigns a section to a specific room,
-    time slot, day, and faculty member. Supports locking critical slots
-    to prevent modification during re-optimization (User Story 3.2).
+    time slot(s), day, and faculty member(s). Supports multi-slot courses (CIR, labs)
+    via duration_slots field, and lab batching via batch_number.
+    Supports locking critical slots to prevent modification during re-optimization (User Story 3.2).
     
     Attributes:
         id: Primary key
@@ -134,29 +135,44 @@ class TimetableSlot(Base):
         section_id: Section being scheduled
         course_id: Course (denormalized for performance)
         room_id: Assigned room
-        time_slot_id: Time slot (e.g., 09:00-10:00)
-        faculty_id: Assigned faculty (nullable)
+        start_slot_id: Starting time slot number (references time_slots.slot_number)
+        duration_slots: Number of consecutive slots (1=regular class, 3=CIR/lab)
         day_of_week: Day (0=Monday, 6=Sunday)
-        is_locked: Protected from re-optimization (User Story 3.2)
+        primary_faculty_id: Main faculty member assigned
+        assisting_faculty_ids: Array of additional faculty (for labs requiring multiple instructors)
+        batch_number: For lab batching (1, 2, ..., NULL for non-batched)
+       is_locked: Protected from re-optimization (User Story 3.2)
         created_at: Assignment timestamp
     
     Constraints:
         - day_of_week must be between 0 and 6
+        - duration_slots must be between 1 and 5
     
     Indexes:
-        - Composite on (timetable_id, day, time_slot_id, room_id) for conflict detection
-        - Index on (faculty_id, day, time_slot_id) for faculty conflicts
+        - Composite on (timetable_id, day, room_id) for conflict detection
+        - Index on (primary_faculty_id, day) for faculty conflicts
     
     Test Coverage: tests/test_models/test_timetable_models.py::test_slot_creation
     
     Example:
+        >>> # Regular 1-hour class
         >>> slot = TimetableSlot(
         ...     timetable_id=1,
         ...     section_id=10,
         ...     room_id=101,
-        ...     time_slot_id=1,
+        ...     start_slot_id=4,  # Slot 4
+        ...     duration_slots=1,  # Occupies only slot 4
         ...     day_of_week=0,  # Monday
         ...     is_locked=False
+        ... )
+        >>> # CIR 3-hour block
+        >>> cir_slot = TimetableSlot(
+        ...     timetable_id=1,
+        ...     section_id=10,
+        ...     room_id=101,
+        ...     start_slot_id=4,  # Slots 4, 5, 6
+        ...     duration_slots=3,
+        ...     day_of_week=0
         ... )
     """
     __tablename__ = "timetable_slots"
@@ -171,11 +187,20 @@ class TimetableSlot(Base):
     section_id = Column(Integer, ForeignKey("sections.id", ondelete="CASCADE"), nullable=False, index=True)
     course_id = Column(Integer, nullable=True)  # Will add FK later
     room_id = Column(Integer, ForeignKey("rooms.id", ondelete="CASCADE"), nullable=False, index=True)
-    time_slot_id = Column(Integer, ForeignKey("time_slots.id", ondelete="CASCADE"), nullable=False, index=True)
-    faculty_id = Column(Integer, nullable=True, index=True)  # Will add FK later
+    
+    # Multi-slot support (User Story 3.1, 3.3)
+    start_slot_id = Column(Integer, ForeignKey("time_slots.id"), nullable=False, index=True)
+    duration_slots = Column(Integer, nullable=False, default=1)  # 1=single slot, 3=CIR/3-hour lab
     
     # Scheduling Fields
     day_of_week = Column(Integer, nullable=False)  # 0-6 (Monday-Sunday)
+    
+    # Faculty Assignment
+    primary_faculty_id = Column(Integer, nullable=True, index=True)  # Will add FK later
+    assisting_faculty_ids = Column(ARRAY(Integer), default=list)  # For labs needing multiple faculty
+    
+    # Lab Batching (institutional config)
+    batch_number = Column(Integer, nullable=True)  # 1, 2, ... (NULL for non-batched courses)
     
     # Slot Locking (Epic 3 - User Story 3.2)
     is_locked = Column(Boolean, default=False, nullable=False, index=True)
@@ -186,10 +211,12 @@ class TimetableSlot(Base):
     # Database Constraints
     __table_args__ = (
         CheckConstraint("day_of_week >= 0 AND day_of_week <= 6", name="check_day_of_week_valid"),
+        CheckConstraint("duration_slots >= 1 AND duration_slots <= 5", name="check_duration_slots_valid"),
+        CheckConstraint("batch_number IS NULL OR batch_number > 0", name="check_batch_number_positive"),
     )
     
     def __repr__(self):
-        return f"<TimetableSlot(id={self.id}, section={self.section_id}, room={self.room_id}, day={self.day_of_week})>"
+        return f"<TimetableSlot(id={self.id}, section={self.section_id}, room={self.room_id}, day={self.day_of_week}, slots={self.start_slot_id}+{self.duration_slots})>"
 
 
 class Conflict(Base):

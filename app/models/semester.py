@@ -16,10 +16,33 @@ Relationships:
     - One semester has many elective groups (one-to-many)
 """
 
-from sqlalchemy import Column, Integer, String, Date, Boolean, DateTime
+from sqlalchemy import Column, Integer, String, Date, Boolean, DateTime, Enum as SQLEnum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+import enum
 from app.db.session import Base
+
+
+class SemesterType(str, enum.Enum):
+    """
+    Semester type enumeration for campus-wide semester classification.
+    
+    All sections campus-wide are in the same semester type (ODD or EVEN) at the same time.
+    This determines which courses from the curriculum are taught.
+    
+    Types:
+        ODD: Odd semester (Semester 1, 3, 5, 7)
+        EVEN: Even semester (Semester 2, 4, 6, 8)
+    
+    Example:
+        Fall 2025 might be ODD for entire campus:
+        - Year 1 sections → Semester 1 courses
+        - Year 2 sections → Semester 3 courses  
+        - Year 3 sections → Semester 5 courses
+        - Year 4 sections → Semester 7 courses
+    """
+    ODD = "ODD"
+    EVEN = "EVEN"
 
 
 class Semester(Base):
@@ -34,6 +57,7 @@ class Semester(Base):
         id (int): Primary key, auto-incrementing unique identifier
         name (str): Semester name (e.g., "Fall 2026", "Spring 2027")
         academic_year (str): Academic year in format "YYYY-YYYY" (e.g., "2026-2027")
+        semester_type (SemesterType): Type of semester - ODD or EVEN (campus-wide)
         start_date (date): First day of the semester
         end_date (date): Last day of the semester
         is_active (bool): Whether this semester is currently active
@@ -61,6 +85,7 @@ class Semester(Base):
     # Core Fields
     name = Column(String(100), nullable=False)  # E.g., "Fall 2026"
     academic_year = Column(String(20), nullable=False)  # E.g., "2026-2027"
+    semester_type = Column(SQLEnum(SemesterType), nullable=False)  # ODD or EVEN (campus-wide)
     start_date = Column(Date, nullable=False)  # Semester start date
     end_date = Column(Date, nullable=False)  # Semester end date
     is_active = Column(Boolean, default=True)  # Active/inactive flag

@@ -3,12 +3,14 @@ from typing import Optional
 
 
 class SectionBase(BaseModel):
-    """Base Section schema"""
-    semester_id: int = Field(..., gt=0)
+    """Base Section schema - permanent batch-based sections"""
     department_id: int = Field(..., gt=0)
-    name: str = Field(..., min_length=1, max_length=50, examples=["Section A"])
-    year: int = Field(..., ge=1, le=4, examples=[1])
+    name: str = Field(..., min_length=1, max_length=50, examples=["CSE-A"])
+    batch_year_start: int = Field(..., ge=2020, le=2100, examples=[2023])
+    batch_year_end: int = Field(..., ge=2020, le=2100, examples=[2027])
     student_count: int = Field(..., gt=0, examples=[60])
+    dedicated_room_id: Optional[int] = Field(None, gt=0, description="Home room for HomeRoomPreference constraint")
+    class_advisor_ids: Optional[list[int]] = Field(default=[], description="User IDs of class advisors for mentoring")
 
 
 class SectionCreate(SectionBase):
@@ -18,11 +20,13 @@ class SectionCreate(SectionBase):
 
 class SectionUpdate(BaseModel):
     """Schema for updating a section"""
-    semester_id: Optional[int] = Field(None, gt=0)
     department_id: Optional[int] = Field(None, gt=0)
     name: Optional[str] = Field(None, min_length=1, max_length=50)
-    year: Optional[int] = Field(None, ge=1, le=4)
+    batch_year_start: Optional[int] = Field(None, ge=2020, le=2100)
+    batch_year_end: Optional[int] = Field(None, ge=2020, le=2100)
     student_count: Optional[int] = Field(None, gt=0)
+    dedicated_room_id: Optional[int] = Field(None, gt=0)
+    class_advisor_ids: Optional[list[int]] = None
 
 
 class SectionResponse(SectionBase):

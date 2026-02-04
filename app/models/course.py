@@ -17,36 +17,54 @@ Relationships:
     - Course optionally belongs to one ElectiveGroup (many-to-one)
 """
 
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, CheckConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, CheckConstraint, Enum as SQLEnum, ARRAY
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
+import enum
 from app.db.session import Base
+
+
+class CourseCategory(str, enum.Enum):
+    """
+    Course category enumeration for curriculum classification.
+    
+    Categories:
+        CORE: Mandatory core courses for all students in a program
+        PROFESSIONAL_ELECTIVE: Department-specific elective courses (PE1, PE2)
+        FREE_ELECTIVE: Cross-department elective courses (FE1)
+        PROJECT: Project-based courses (capstone projects)
+        MENTORING: Mentoring/tutorial sessions
+    """
+    CORE = "CORE"
+    PROFESSIONAL_ELECTIVE = "PROFESSIONAL_ELECTIVE"
+    FREE_ELECTIVE = "FREE_ELECTIVE"
+    PROJECT = "PROJECT"
+    MENTORING = "MENTORING"
 
 
 class ElectiveGroup(Base):
     """
     ElectiveGroup model representing a collection of elective courses.
     
-    An elective group contains multiple courses from which students can
-    choose a subset. For example, "Engineering Electives Group 1" might
-    contain 5 courses, and students must select 2 of them.
+    An elective group represents a permanent collection of elective slots (e.g., PE1, PE2, FE1).
+    The actual courses offered change per semester via CourseElectiveAssignment.
     
     Attributes:
         id (int): Primary key, unique identifier
-        name (str): Group name (e.g., "Engineering Electives Group 1")
+        name (str): Group name (e.g., "PE1", "PE2", "FE1-EVS")
         description (str): Optional detailed description
-        semester_id (int): Foreign key to semester this group belongs to
+        participating_department_ids (list[int]): Array of department IDs that participate (for FE groups)
         created_at (datetime): Record creation timestamp
     
     Relationships:
-        semester: The semester this elective group is offered in
-        courses: All courses that are part of this elective group
+        course_assignments: Per-semester course assignments via CourseElectiveAssignment
     
     Example:
+        # PE1 for CSE and ECE departments
         group = ElectiveGroup(
-            name="Engineering Electives Group 1",
-            description="First set of engineering electives for Sem 5",
-            semester_id=1
+            name="PE1",
+            description="Professional Elective Group 1",
+            participating_department_ids=[1, 2]  # CSE, ECE
         )
     """
     __tablename__ = "elective_groups"
@@ -55,16 +73,16 @@ class ElectiveGroup(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     # Core Fields
-    name = Column(String(100), nullable=False)  # E.g., "Engineering Electives Group 1"
+    name = Column(String(100), nullable=False, unique=True)  # E.g., "PE1", "PE2", "FE1"
     description = Column(String, nullable=True)  # Optional detailed description
-    semester_id = Column(Integer, ForeignKey("semesters.id"), nullable=False)  # Parent semester
+    
+    # Cross-department participation (for FE groups)
+    participating_department_ids = Column(ARRAY(Integer), default=list)  # E.g., [1, 2, 3] for CSE, ECE, MECH
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Relationships (commented until circular imports resolved)
-    # semester = relationship("Semester", back_populates="elective_groups")
-    # courses = relationship("Course", back_populates="elective_group")
+    # Relationships: course_elective_assignments (per semester)
     
     def __repr__(self):
         """String representation for debugging."""
@@ -134,7 +152,8 @@ class Course(Base):
     
     # Organizational Fields
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)  # Owning department
-    is_elective = Column(Boolean, default=False)  # Core vs Elective flag
+    course_category = Column(SQLEnum(CourseCategory), nullable=False, default=CourseCategory.CORE)  # Course type
+    is_elective = Column(Boolean, default=False)  # DEPRECATED: use course_category instead
     elective_group_id = Column(Integer, ForeignKey("elective_groups.id"), nullable=True)  # Group if elective
     
     # Scheduling Requirements
