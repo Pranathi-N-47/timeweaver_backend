@@ -173,8 +173,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```
 
 **⚠️ IMPORTANT**: Update `DATABASE_URL` with your PostgreSQL password!
-
-**Current password in file**: `dark$citrus`  
+ 
 **Replace with YOUR postgres password**
 
 ### Step 5: Run Database Migrations
@@ -827,3 +826,4 @@ Before starting development, ensure:
 **Happy Coding! 🚀**
 
 For questions, check MODULE_SPECIFICATIONS.md or ask your team lead.
+
