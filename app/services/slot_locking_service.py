@@ -1,4 +1,9 @@
 """
+Module: Timetable Generation & Scheduling (Module 3)
+Repository: timeweaver_backend
+Owner: Pranathi Nibhanipudi
+Epic: 3 - Timetable Generation / Re-generation
+
 Slot Locking Service - User Story 3.2
 
 Handles locking and unlocking of timetable slots to protect critical
@@ -8,6 +13,11 @@ Locked slots are:
 - Protected from modification during generation
 - Preserved during re-optimization
 - Used for manual overrides and fixes
+
+Dependencies:
+    - app.models.timetable (TimetableSlot model)
+
+User Stories: 3.2.2 (Slot Locking)
 """
 
 from sqlalchemy.orm import Session

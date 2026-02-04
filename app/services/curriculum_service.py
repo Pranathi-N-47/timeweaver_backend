@@ -1,14 +1,28 @@
 """
+Module: Timetable Generation & Scheduling (Module 3)
+Repository: timeweaver_backend
+Owner: Pranathi Nibhanipudi
+Epic: 3 - Timetable Generation / Re-generation
+
 Curriculum Service - Section Semester Calculation
 
 Calculates which semester (1-8) a section is currently in and fetches
-the appropriate courses for timetable generation.
+the appropriate courses for timetable generation based on batch lifecycle
+and ODD/EVEN semester types.
 
 Key Logic:
 - Section has batch_year_start (e.g., 2023) and batch_year_end (2027)
 - Semester has semester_type (ODD/EVEN) and year (e.g., 2025)
 - Calculate: year_level = (current_year - batch_year_start) + 1
 - Semester number = (year_level - 1) * 2 + (1 if ODD else 2)
+
+Dependencies:
+    - app.models.section (Section model)
+    - app.models.semester (Semester, SemesterType)
+    - app.models.curriculum (Curriculum model)
+    - app.models.course (Course, CourseCategory)
+
+User Stories: 3.3.2 (Multi-Solution Generation)
 """
 
 from datetime import date

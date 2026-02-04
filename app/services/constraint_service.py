@@ -1,4 +1,9 @@
 """
+Module: Timetable Generation & Scheduling (Module 3)
+Repository: timeweaver_backend
+Owner: Pranathi Nibhanipudi
+Epic: 3 - Timetable Generation / Re-generation
+
 Constraint Service - Validation and Weight Calculation
 
 Validates hard constraints (must be satisfied) and calculates soft constraint
@@ -12,18 +17,38 @@ Hard Constraints:
 Soft Constraints (weights 0-1):
 - Home room preference: 0.9 weight
 - Faculty preference: 0.8 weight
+
+Dependencies:
+    - app.models.room (Room model)
+    - app.models.section (Section model)
+    - app.models.course (Course model)
+    - app.models.timetable (TimetableSlot model)
+
+User Stories: 3.4.2 (ML-Based Learning), 3.3.2 (Multi-Solution)
 """
 
 from sqlalchemy.orm import Session
 from sqlalchemy import select
+from typing import Optional
 from app.models.room import Room
 from app.models.section import Section
 from app.models.course import Course
 from app.models.timetable import TimetableSlot
+from app.services.rule_engine import RuleEngine
 
 
 class ConstraintService:
     """Service for constraint validation and scoring"""
+    
+    def __init__(self, db: Session):
+        """
+        Initialize with database session.
+        
+        Args:
+            db: Database session for loading rules
+        """
+        self.db = db
+        self.rules = RuleEngine.load_active_rules(db)
     
     # Soft constraint weights
     HOME_ROOM_WEIGHT = 0.9
@@ -210,3 +235,31 @@ class ConstraintService:
         
         # Return soft constraint score
         return validation["total_soft_score"]
+    
+    def validate_slot_with_rules(
+        self,
+        slot: TimetableSlot,
+        all_slots: Optional[list[TimetableSlot]] = None
+    ) -> dict:
+        """
+        Validate slot against all institutional rules.
+        
+        Args:
+            slot: TimetableSlot to validate
+            all_slots: All slots (for context-dependent rules)
+            
+        Returns:
+            Dict with validation results and violations
+        """
+        is_valid, violations = RuleEngine.validate_all_hard_constraints(
+            self.db,
+            slot,
+            self.rules,
+            all_slots
+        )
+        
+        return {
+            "valid": is_valid,
+            "violations": violations,
+            "rules_checked": len(self.rules)
+        }

@@ -1,4 +1,9 @@
 """
+Module: Timetable Generation & Scheduling (Module 3)
+Repository: timeweaver_backend
+Owner: Pranathi Nibhanipudi
+Epic: 3 - Timetable Generation / Re-generation
+
 Conflict Detection Service - User Story 3.1
 
 Detects scheduling conflicts in generated timetables:
@@ -9,6 +14,14 @@ Detects scheduling conflicts in generated timetables:
 - Lab requirement violations
 
 Creates Conflict records with severity levels for resolution tracking.
+
+Dependencies:
+    - app.models.timetable (Timetable, TimetableSlot, Conflict)
+    - app.models.room (Room model)
+    - app.models.section (Section model)
+    - app.models.course (Course model)
+
+User Stories: 3.1.2 (Conflict Detection)
 """
 
 from sqlalchemy.orm import Session
