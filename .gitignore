@@ -29,6 +29,3 @@ htmlcov/
 
 # Alembic
 alembic/versions/*.pyc
-
-MODULE_SPECIFICATIONS.md
-SETUP_GUIDE.md
