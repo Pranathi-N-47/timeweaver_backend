@@ -152,7 +152,7 @@ class Course(Base):
     
     # Organizational Fields
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)  # Owning department
-    course_category = Column(SQLEnum(CourseCategory), nullable=False, default=CourseCategory.CORE)  # Course type
+    course_category = Column(String, nullable=False, default=CourseCategory.CORE.value)  # Course type
     is_elective = Column(Boolean, default=False)  # DEPRECATED: use course_category instead
     elective_group_id = Column(Integer, ForeignKey("elective_groups.id"), nullable=True)  # Group if elective
     

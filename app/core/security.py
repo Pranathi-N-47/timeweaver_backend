@@ -33,7 +33,7 @@ def hash_password(password: str) -> str:
     Hash a plain text password using bcrypt.
     
     Bcrypt has a maximum password length of 72 bytes.
-    The CryptContext is configured to automatically truncate longer passwords.
+    We manually truncate to avoid bcrypt/passlib version issues.
     
     Args:
         password: Plain text password to hash
@@ -45,7 +45,10 @@ def hash_password(password: str) -> str:
         hashed = hash_password("MySecureP@ss123")
         # Returns: "$2b$12$KIX..."
     """
-    return pwd_context.hash(password)
+    # Manually truncate to 72 bytes to avoid bcrypt version issues
+    password_bytes = password.encode('utf-8')[:72]
+    password_truncated = password_bytes.decode('utf-8', errors='ignore')
+    return pwd_context.hash(password_truncated)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -62,7 +65,10 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Example:
         is_valid = verify_password("MySecureP@ss123", user.hashed_password)
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    # Truncate to 72 bytes to match hashing
+    password_bytes = plain_password.encode('utf-8')[:72]
+    password_truncated = password_bytes.decode('utf-8', errors='ignore')
+    return pwd_context.verify(password_truncated, hashed_password)
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
@@ -116,8 +122,8 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except JWTError as e:
-        raise ValueError(f"Invalid token: {str(e)}")
+    except (JWTError, ValueError):
+        return None
 
 
 def generate_reset_token() -> str:

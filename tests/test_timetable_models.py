@@ -27,7 +27,7 @@ class TestTimetableModel:
     """Test cases for Timetable model"""
     
     @pytest.mark.asyncio
-    async def test_create_timetable_success(self, db_session, sample_semester, sample_admin_user):
+    async def test_create_timetable_success(self, test_db, sample_semester, sample_admin_user):
         """Test successful timetable creation with valid data"""
         timetable = Timetable(
             semester_id=sample_semester.id,
@@ -41,9 +41,9 @@ class TestTimetableModel:
             created_by_user_id=sample_admin_user.id
         )
         
-        db_session.add(timetable)
-        await db_session.commit()
-        await db_session.refresh(timetable)
+        test_db.add(timetable)
+        await test_db.commit()
+        await test_db.refresh(timetable)
         
         assert timetable.id is not None
         assert timetable.name == "Fall 2024 - GA v1"
@@ -54,23 +54,23 @@ class TestTimetableModel:
         assert timetable.created_at is not None
     
     @pytest.mark.asyncio
-    async def test_timetable_default_status(self, db_session, sample_semester):
+    async def test_timetable_default_status(self, test_db, sample_semester):
         """Test that default status is 'generating'"""
         timetable = Timetable(
             semester_id=sample_semester.id,
             name="Test"
         )
         
-        db_session.add(timetable)
-        await db_session.commit()
-        await db_session.refresh(timetable)
+        test_db.add(timetable)
+        await test_db.commit()
+        await test_db.refresh(timetable)
         
         assert timetable.status == "generating"
         assert timetable.conflict_count == 0
         assert timetable.is_published is False
     
     @pytest.mark.asyncio
-    async def test_timetable_invalid_status(self, db_session, sample_semester):
+    async def test_timetable_invalid_status(self, test_db, sample_semester):
         """Test that invalid status value raises constraint error"""
         timetable = Timetable(
             semester_id=sample_semester.id,
@@ -78,15 +78,15 @@ class TestTimetableModel:
             status="invalid_status"  # Not in: generating, completed, failed, archived
         )
         
-        db_session.add(timetable)
+        test_db.add(timetable)
         
         with pytest.raises(IntegrityError) as exc_info:
-            await db_session.commit()
+            await test_db.commit()
         
         assert "check_status_valid" in str(exc_info.value)
     
     @pytest.mark.asyncio
-    async def test_timetable_quality_score_range_validation(self, db_session, sample_semester):
+    async def test_timetable_quality_score_range_validation(self, test_db, sample_semester):
         """Test that quality_score must be between 0 and 1"""
         # Test invalid score > 1
         timetable = Timetable(
@@ -95,15 +95,15 @@ class TestTimetableModel:
             quality_score=1.5  # Invalid: > 1
         )
         
-        db_session.add(timetable)
+        test_db.add(timetable)
         
         with pytest.raises(IntegrityError) as exc_info:
-            await db_session.commit()
+            await test_db.commit()
         
         assert "check_quality_score_range" in str(exc_info.value)
     
     @pytest.mark.asyncio
-    async def test_timetable_negative_conflict_count(self, db_session, sample_semester):
+    async def test_timetable_negative_conflict_count(self, test_db, sample_semester):
         """Test that conflict_count cannot be negative"""
         timetable = Timetable(
             semester_id=sample_semester.id,
@@ -111,15 +111,15 @@ class TestTimetableModel:
             conflict_count=-1  # Invalid
         )
         
-        db_session.add(timetable)
+        test_db.add(timetable)
         
         with pytest.raises(IntegrityError) as exc_info:
-            await db_session.commit()
+            await test_db.commit()
         
         assert "check_conflict_count_positive" in str(exc_info.value)
     
     @pytest.mark.asyncio
-    async def test_timetable_invalid_algorithm(self, db_session, sample_semester):
+    async def test_timetable_invalid_algorithm(self, test_db, sample_semester):
         """Test that invalid algorithm raises constraint error"""
         timetable = Timetable(
             semester_id=sample_semester.id,
@@ -127,24 +127,24 @@ class TestTimetableModel:
             generation_algorithm="INVALID_ALGO"
         )
         
-        db_session.add(timetable)
+        test_db.add(timetable)
         
         with pytest.raises(IntegrityError) as exc_info:
-            await db_session.commit()
+            await test_db.commit()
         
         assert "check_algorithm_valid" in str(exc_info.value)
     
     @pytest.mark.asyncio
-    async def test_timetable_cascade_delete_on_semester(self, db_session, sample_semester, sample_timetable):
+    async def test_timetable_cascade_delete_on_semester(self, test_db, sample_semester, sample_timetable):
         """Test that deleting semester deletes timetables"""
         timetable_id = sample_timetable.id
         
         # Delete semester
-        await db_session.delete(sample_semester)
-        await db_session.commit()
+        await test_db.delete(sample_semester)
+        await test_db.commit()
         
         # Timetable should be deleted
-        result = await db_session.execute(
+        result = await test_db.execute(
             select(Timetable).where(Timetable.id == timetable_id)
         )
         assert result.scalar_one_or_none() is None
@@ -154,7 +154,7 @@ class TestTimetableSlotModel:
     """Test cases for TimetableSlot model"""
     
     @pytest.mark.asyncio
-    async def test_create_slot_success(self, db_session, sample_timetable, sample_sections, sample_rooms, sample_time_slots):
+    async def test_create_slot_success(self, test_db, sample_timetable, sample_sections, sample_rooms, sample_time_slots):
         """Test successful slot creation"""
         slot = TimetableSlot(
             timetable_id=sample_timetable.id,
@@ -165,9 +165,9 @@ class TestTimetableSlotModel:
             is_locked=False
         )
         
-        db_session.add(slot)
-        await db_session.commit()
-        await db_session.refresh(slot)
+        test_db.add(slot)
+        await test_db.commit()
+        await test_db.refresh(slot)
         
         assert slot.id is not None
         assert slot.timetable_id == sample_timetable.id
@@ -178,7 +178,7 @@ class TestTimetableSlotModel:
         assert slot.created_at is not None
     
     @pytest.mark.asyncio
-    async def test_slot_day_of_week_validation(self, db_session, sample_timetable, sample_sections, sample_rooms, sample_time_slots):
+    async def test_slot_day_of_week_validation(self, test_db, sample_timetable, sample_sections, sample_rooms, sample_time_slots):
         """Test that day_of_week must be 0-6"""
         # Test invalid day > 6
         slot = TimetableSlot(
@@ -189,15 +189,15 @@ class TestTimetableSlotModel:
             day_of_week=7  # Invalid: must be 0-6
         )
         
-        db_session.add(slot)
+        test_db.add(slot)
         
         with pytest.raises(IntegrityError) as exc_info:
-            await db_session.commit()
+            await test_db.commit()
         
         assert "check_day_of_week_valid" in str(exc_info.value)
     
     @pytest.mark.asyncio
-    async def test_slot_negative_day(self, db_session, sample_timetable, sample_sections, sample_rooms, sample_time_slots):
+    async def test_slot_negative_day(self, test_db, sample_timetable, sample_sections, sample_rooms, sample_time_slots):
         """Test that day_of_week cannot be negative"""
         slot = TimetableSlot(
             timetable_id=sample_timetable.id,
@@ -207,15 +207,15 @@ class TestTimetableSlotModel:
             day_of_week=-1  # Invalid
         )
         
-        db_session.add(slot)
+        test_db.add(slot)
         
         with pytest.raises(IntegrityError) as exc_info:
-            await db_session.commit()
+            await test_db.commit()
         
         assert "check_day_of_week_valid" in str(exc_info.value)
     
     @pytest.mark.asyncio
-    async def test_slot_locked_flag(self, db_session, sample_timetable, sample_sections, sample_rooms, sample_time_slots):
+    async def test_slot_locked_flag(self, test_db, sample_timetable, sample_sections, sample_rooms, sample_time_slots):
         """Test slot locking functionality (User Story 3.2)"""
         slot = TimetableSlot(
             timetable_id=sample_timetable.id,
@@ -226,14 +226,14 @@ class TestTimetableSlotModel:
             is_locked=True  # Locked slot
         )
         
-        db_session.add(slot)
-        await db_session.commit()
-        await db_session.refresh(slot)
+        test_db.add(slot)
+        await test_db.commit()
+        await test_db.refresh(slot)
         
         assert slot.is_locked is True
     
     @pytest.mark.asyncio
-    async def test_slot_cascade_delete_on_timetable(self, db_session, sample_timetable, sample_sections, sample_rooms, sample_time_slots):
+    async def test_slot_cascade_delete_on_timetable(self, test_db, sample_timetable, sample_sections, sample_rooms, sample_time_slots):
         """Test that deleting timetable deletes slots"""
         slot = TimetableSlot(
             timetable_id=sample_timetable.id,
@@ -243,16 +243,16 @@ class TestTimetableSlotModel:
             day_of_week=0
         )
         
-        db_session.add(slot)
-        await db_session.commit()
+        test_db.add(slot)
+        await test_db.commit()
         slot_id = slot.id
         
         # Delete timetable
-        await db_session.delete(sample_timetable)
-        await db_session.commit()
+        await test_db.delete(sample_timetable)
+        await test_db.commit()
         
         # Slot should be deleted
-        result = await db_session.execute(
+        result = await test_db.execute(
             select(TimetableSlot).where(TimetableSlot.id == slot_id)
         )
         assert result.scalar_one_or_none() is None
@@ -262,7 +262,7 @@ class TestConflictModel:
     """Test cases for Conflict model"""
     
     @pytest.mark.asyncio
-    async def test_create_conflict_success(self, db_session, sample_timetable):
+    async def test_create_conflict_success(self, test_db, sample_timetable):
         """Test successful conflict creation"""
         conflict = Conflict(
             timetable_id=sample_timetable.id,
@@ -273,9 +273,9 @@ class TestConflictModel:
             is_resolved=False
         )
         
-        db_session.add(conflict)
-        await db_session.commit()
-        await db_session.refresh(conflict)
+        test_db.add(conflict)
+        await test_db.commit()
+        await test_db.refresh(conflict)
         
         assert conflict.id is not None
         assert conflict.timetable_id == sample_timetable.id
@@ -286,7 +286,7 @@ class TestConflictModel:
         assert conflict.detected_at is not None
     
     @pytest.mark.asyncio
-    async def test_conflict_default_severity(self, db_session, sample_timetable):
+    async def test_conflict_default_severity(self, test_db, sample_timetable):
         """Test that default severity is HIGH"""
         conflict = Conflict(
             timetable_id=sample_timetable.id,
@@ -295,15 +295,15 @@ class TestConflictModel:
             description="Test"
         )
         
-        db_session.add(conflict)
-        await db_session.commit()
-        await db_session.refresh(conflict)
+        test_db.add(conflict)
+        await test_db.commit()
+        await test_db.refresh(conflict)
         
         assert conflict.severity == "HIGH"
         assert conflict.is_resolved is False
     
     @pytest.mark.asyncio
-    async def test_conflict_invalid_type(self, db_session, sample_timetable):
+    async def test_conflict_invalid_type(self, test_db, sample_timetable):
         """Test that invalid conflict type raises error"""
         conflict = Conflict(
             timetable_id=sample_timetable.id,
@@ -312,15 +312,15 @@ class TestConflictModel:
             description="Test"
         )
         
-        db_session.add(conflict)
+        test_db.add(conflict)
         
         with pytest.raises(IntegrityError) as exc_info:
-            await db_session.commit()
+            await test_db.commit()
         
         assert "check_conflict_type_valid" in str(exc_info.value)
     
     @pytest.mark.asyncio
-    async def test_conflict_invalid_severity(self, db_session, sample_timetable):
+    async def test_conflict_invalid_severity(self, test_db, sample_timetable):
         """Test that invalid severity raises error"""
         conflict = Conflict(
             timetable_id=sample_timetable.id,
@@ -330,15 +330,15 @@ class TestConflictModel:
             description="Test"
         )
         
-        db_session.add(conflict)
+        test_db.add(conflict)
         
         with pytest.raises(IntegrityError) as exc_info:
-            await db_session.commit()
+            await test_db.commit()
         
         assert "check_severity_valid" in str(exc_info.value)
     
     @pytest.mark.asyncio
-    async def test_conflict_resolution_tracking(self, db_session, sample_timetable):
+    async def test_conflict_resolution_tracking(self, test_db, sample_timetable):
         """Test conflict resolution tracking"""
         from datetime import datetime
         
@@ -353,16 +353,16 @@ class TestConflictModel:
             resolved_at=datetime.utcnow()
         )
         
-        db_session.add(conflict)
-        await db_session.commit()
-        await db_session.refresh(conflict)
+        test_db.add(conflict)
+        await test_db.commit()
+        await test_db.refresh(conflict)
         
         assert conflict.is_resolved is True
         assert conflict.resolution_notes == "Manually rescheduled Section B"
         assert conflict.resolved_at is not None
     
     @pytest.mark.asyncio
-    async def test_conflict_multiple_slots(self, db_session, sample_timetable):
+    async def test_conflict_multiple_slots(self, test_db, sample_timetable):
         """Test conflict with multiple conflicting slots"""
         conflict = Conflict(
             timetable_id=sample_timetable.id,
@@ -372,9 +372,9 @@ class TestConflictModel:
             description="Auditorium over-capacity"
         )
         
-        db_session.add(conflict)
-        await db_session.commit()
-        await db_session.refresh(conflict)
+        test_db.add(conflict)
+        await test_db.commit()
+        await test_db.refresh(conflict)
         
         assert len(conflict.slot_ids) == 4
         assert conflict.slot_ids == [1, 2, 3, 4]

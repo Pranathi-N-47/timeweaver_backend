@@ -20,161 +20,175 @@ Dependencies:
 User Stories: 3.2.2 (Slot Locking)
 """
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
-from app.models.timetable import TimetableSlot
+from app.models.timetable import TimetableSlot, Timetable
 
 
 class SlotLockingService:
-    """Service for slot locking operations"""
+    """Service for slot locking operations (async API-compatible)"""
     
-    @staticmethod
-    def lock_slots(db: Session, slot_ids: list[int]) -> int:
+    def __init__(self, db: AsyncSession):
+        """Initialize with async database session"""
+        self.db = db
+    
+    async def lock_slots(self, timetable_id: int, slot_ids: list[int]) -> dict:
         """
         Lock specified timetable slots.
         
         Args:
-            db: Database session
+            timetable_id: Timetable ID
             slot_ids: List of slot IDs to lock
             
         Returns:
-            Number of slots locked
+            Dict with locked_count and slot_ids
+            
+        Raises:
+            ValueError: If timetable not found
         """
+        # Verify timetable exists
+        tt_query = select(Timetable).where(Timetable.id == timetable_id)
+        tt_result = await self.db.execute(tt_query)
+        if not tt_result.scalar_one_or_none():
+            raise ValueError(f"Timetable {timetable_id} not found")
+        
         stmt = (
             update(TimetableSlot)
-            .where(TimetableSlot.id.in_(slot_ids))
+            .where(
+                TimetableSlot.timetable_id == timetable_id,
+                TimetableSlot.id.in_(slot_ids)
+            )
             .values(is_locked=True)
         )
         
-        result = db.execute(stmt)
-        db.commit()
+        result = await self.db.execute(stmt)
+        await self.db.commit()
         
-        return result.rowcount
+        return {
+            "locked_count": result.rowcount,
+            "slot_ids": slot_ids
+        }
     
-    @staticmethod
-    def unlock_slots(db: Session, slot_ids: list[int]) -> int:
+    async def unlock_slots(self, timetable_id: int, slot_ids: list[int]) -> dict:
         """
         Unlock specified timetable slots.
         
         Args:
-            db: Database session
+            timetable_id: Timetable ID
             slot_ids: List of slot IDs to unlock
             
         Returns:
-            Number of slots unlocked
+            Dict with unlocked_count and slot_ids
+            
+        Raises:
+            ValueError: If timetable not found
         """
+        # Verify timetable exists
+        tt_query = select(Timetable).where(Timetable.id == timetable_id)
+        tt_result = await self.db.execute(tt_query)
+        if not tt_result.scalar_one_or_none():
+            raise ValueError(f"Timetable {timetable_id} not found")
+        
         stmt = (
             update(TimetableSlot)
-            .where(TimetableSlot.id.in_(slot_ids))
+            .where(
+                TimetableSlot.timetable_id == timetable_id,
+                TimetableSlot.id.in_(slot_ids)
+            )
             .values(is_locked=False)
         )
         
-        result = db.execute(stmt)
-        db.commit()
+        result = await self.db.execute(stmt)
+        await self.db.commit()
         
-        return result.rowcount
+        return {
+            "unlocked_count": result.rowcount,
+            "slot_ids": slot_ids
+        }
     
-    @staticmethod
-    def lock_all_slots_for_timetable(db: Session, timetable_id: int) -> int:
-        """
-        Lock ALL slots in a timetable (for publishing).
-        
-        Args:
-            db: Database session
-            timetable_id: Timetable ID
-            
-        Returns:
-            Number of slots locked
-        """
-        stmt = (
-            update(TimetableSlot)
-            .where(TimetableSlot.timetable_id == timetable_id)
-            .values(is_locked=True)
-        )
-        
-        result = db.execute(stmt)
-        db.commit()
-        
-        return result.rowcount
-    
-    @staticmethod
-    def unlock_all_slots_for_timetable(db: Session, timetable_id: int) -> int:
-        """
-        Unlock ALL slots in a timetable (for re-generation).
-        
-        Args:
-            db: Database session
-            timetable_id: Timetable ID
-            
-        Returns:
-            Number of slots unlocked
-        """
-        stmt = (
-            update(TimetableSlot)
-            .where(TimetableSlot.timetable_id == timetable_id)
-            .values(is_locked=False)
-        )
-        
-        result = db.execute(stmt)
-        db.commit()
-        
-        return result.rowcount
-    
-    @staticmethod
-    def get_locked_slots(db: Session, timetable_id: int) -> list[TimetableSlot]:
+    async def get_locked_slots(self, timetable_id: int) -> dict:
         """
         Get all locked slots for a timetable.
         
         Args:
-            db: Database session
             timetable_id: Timetable ID
             
         Returns:
-            List of locked TimetableSlot objects
+            Dict with locked_slots list and total_locked count
+            
+        Raises:
+            ValueError: If timetable not found
         """
+        # Verify timetable exists
+        tt_query = select(Timetable).where(Timetable.id == timetable_id)
+        tt_result = await self.db.execute(tt_query)
+        if not tt_result.scalar_one_or_none():
+            raise ValueError(f"Timetable {timetable_id} not found")
+        
         stmt = select(TimetableSlot).where(
             TimetableSlot.timetable_id == timetable_id,
             TimetableSlot.is_locked == True
         )
         
-        result = db.execute(stmt)
-        return list(result.scalars().all())
+        result = await self.db.execute(stmt)
+        slots = list(result.scalars().all())
+        
+        return {
+            "locked_slots": slots,
+            "total_locked": len(slots)
+        }
     
-    @staticmethod
-    def get_unlocked_slots(db: Session, timetable_id: int) -> list[TimetableSlot]:
+    async def lock_all_slots_for_timetable(self, timetable_id: int) -> int:
         """
-        Get all unlocked (modifiable) slots for a timetable.
+        Lock ALL slots in a timetable (for publishing).
         
         Args:
-            db: Database session
             timetable_id: Timetable ID
             
         Returns:
-            List of unlocked TimetableSlot objects
+            Number of slots locked
         """
-        stmt = select(TimetableSlot).where(
-            TimetableSlot.timetable_id == timetable_id,
-            TimetableSlot.is_locked == False
+        stmt = (
+            update(TimetableSlot)
+            .where(TimetableSlot.timetable_id == timetable_id)
+            .values(is_locked=True)
         )
-        
-        result = db.execute(stmt)
-        return list(result.scalars().all())
+        result = await self.db.execute(stmt)
+        await self.db.commit()
+        return result.rowcount
     
-    @staticmethod
-    def get_lock_statistics(db: Session, timetable_id: int) -> dict[str, any]:
+    async def unlock_all_slots_for_timetable(self, timetable_id: int) -> int:
+        """
+        Unlock ALL slots in a timetable (for re-generation).
+        
+        Args:
+            timetable_id: Timetable ID
+            
+        Returns:
+            Number of slots unlocked
+        """
+        stmt = (
+            update(TimetableSlot)
+            .where(TimetableSlot.timetable_id == timetable_id)
+            .values(is_locked=False)
+        )
+        result = await self.db.execute(stmt)
+        await self.db.commit()
+        return result.rowcount
+    
+    async def get_lock_statistics(self, timetable_id: int) -> dict:
         """
         Get locking statistics for a timetable.
         
         Args:
-            db: Database session
             timetable_id: Timetable ID
             
         Returns:
             Dict with lock statistics
         """
-        # Get all slots
         stmt = select(TimetableSlot).where(TimetableSlot.timetable_id == timetable_id)
-        all_slots = list(db.execute(stmt).scalars().all())
+        result = await self.db.execute(stmt)
+        all_slots = list(result.scalars().all())
         
         locked_count = sum(1 for slot in all_slots if slot.is_locked)
         unlocked_count = len(all_slots) - locked_count
@@ -185,23 +199,3 @@ class SlotLockingService:
             "unlocked_slots": unlocked_count,
             "lock_percentage": (locked_count / len(all_slots) * 100) if all_slots else 0
         }
-    
-    @staticmethod
-    def is_slot_modifiable(db: Session, slot_id: int) -> bool:
-        """
-        Check if a slot can be modified (is not locked).
-        
-        Args:
-            db: Database session
-            slot_id: Slot ID to check
-            
-        Returns:
-            True if slot is unlocked and modifiable
-        """
-        stmt = select(TimetableSlot.is_locked).where(TimetableSlot.id == slot_id)
-        result = db.execute(stmt).scalar_one_or_none()
-        
-        if result is None:
-            return False  # Slot doesn't exist
-        
-        return not result  # True if is_locked is False

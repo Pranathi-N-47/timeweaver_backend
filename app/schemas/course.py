@@ -64,6 +64,8 @@ class CourseResponse(CourseBase):
     """Schema for course responses"""
     id: int
     
+    course_category: str
+    
     model_config = ConfigDict(from_attributes=True)
 
 

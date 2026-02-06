@@ -26,7 +26,8 @@ from fastapi import APIRouter
 # Import all entity-specific endpoint routers
 from app.api.v1.endpoints import (
     semesters, departments, sections, courses,
-    elective_groups, rooms, time_slots, constraints, auth, users, audit_logs
+    elective_groups, rooms, time_slots, constraints, auth, users, audit_logs,
+    timetables, institutional_rules, faculty_leaves
 )
 
 # Create main API router for version 1
@@ -65,6 +66,12 @@ api_router.include_router(time_slots.router, prefix="/time-slots", tags=["time-s
 
 # Epic 1: User Story 1.2 - Constraints (includes AI explainability)
 api_router.include_router(constraints.router, prefix="/constraints", tags=["constraints"])
+
+# Epic 3: Timetable Generation (Module 3)
+api_router.include_router(timetables.router, prefix="/timetables", tags=["timetables"])
+api_router.include_router(institutional_rules.router, prefix="/rules", tags=["institutional-rules"])
+api_router.include_router(faculty_leaves.leaves_router, prefix="/faculty-leaves", tags=["faculty-leaves"])
+api_router.include_router(faculty_leaves.locks_router, prefix="/slot-locks", tags=["slot-locks"])
 
 
 @api_router.get("/")
@@ -110,7 +117,18 @@ async def api_root():
                 "/rooms",            # Facilities/classrooms
                 "/time-slots",       # Scheduling time blocks
                 "/constraints"       # Scheduling rules (+ AI explain)
+            ],
+            "timetable_generation": [  # Epic 3
+                "/timetables/generate",      # Generate new timetable
+                "/timetables",               # List/view timetables
+                "/timetables/{id}",          # Get specific timetable
+                "/timetables/{id}/slots",    # Get timetable slots
+                "/timetables/{id}/conflicts",# Get conflicts
+                "/timetables/view",          # View by section/year/dept
+                "/rules",                    # Institutional rules CRUD
+                "/faculty-leaves",           # Faculty leave management
+                "/slot-locks"                # Slot locking operations
             ]
         },
-        "total_endpoints": 64  # 48 from Epic 1 + 16 from Epic 7 (6 auth + 8 users + 2 audit logs)
+        "total_endpoints": 86  # 48 Epic 1 + 16 Epic 7 + 22 Epic 3
     }

@@ -9,7 +9,7 @@ This module defines new models for Epic 3 backend implementation:
 Epic 3: User Stories 3.1-3.8
 """
 
-from sqlalchemy import Column, Integer, ForeignKey, Boolean, DateTime, UniqueConstraint, ARRAY, CheckConstraint, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, DateTime, UniqueConstraint, ARRAY, CheckConstraint, Enum as SQLEnum
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.db.session import Base
@@ -42,7 +42,7 @@ class Curriculum(Base):
     id = Column(Integer, primary_key=True, index=True)
     department_id = Column(Integer, ForeignKey("departments.id", ondelete="CASCADE"), nullable=False, index=True)
     year_level = Column(Integer, nullable=False)  # 1, 2, 3, or 4
-    semester_type = Column(SQLEnum(SemesterType), nullable=False)  # ODD or EVEN
+    semester_type = Column(String, nullable=False)  # ODD or EVEN
     course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False, index=True)
     is_mandatory = Column(Boolean, nullable=False, default=True)  # CORE=True, Elective=False
     

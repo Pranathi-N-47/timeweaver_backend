@@ -106,7 +106,7 @@ class UserResponse(BaseModel):
     username: str
     email: str
     full_name: str
-    role: UserRole
+    role: str
     is_active: bool
     is_superuser: bool
     faculty_id: Optional[int]

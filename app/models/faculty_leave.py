@@ -102,9 +102,9 @@ class FacultyLeave(Base):
     end_date = Column(Date, nullable=False)
     
     # Leave Details
-    leave_type = Column(SQLEnum(LeaveType), nullable=False)
-    strategy = Column(SQLEnum(LeaveStrategy), nullable=False, default=LeaveStrategy.WITHIN_SECTION_SWAP)
-    status = Column(SQLEnum(LeaveStatus), nullable=False, default=LeaveStatus.PROPOSED, index=True)
+    leave_type = Column(String, nullable=False)
+    strategy = Column(String, nullable=False, default=LeaveStrategy.WITHIN_SECTION_SWAP.value)
+    status = Column(String, nullable=False, default=LeaveStatus.PROPOSED.value, index=True)
     
     # Resolution
     replacement_faculty_id = Column(Integer, ForeignKey("users.id"), nullable=True)

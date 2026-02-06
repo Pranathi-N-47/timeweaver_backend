@@ -7,6 +7,7 @@ Automatically captures and logs all state-changing operations (POST, PUT, DELETE
 Extracts user information, request data, and response status for comprehensive audit trails.
 """
 
+import os
 import json
 from typing import Callable
 from fastapi import Request, Response
@@ -57,6 +58,10 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
         Returns:
             Response from the endpoint
         """
+        # Skip during testing to prevent httpx/BaseHTTPMiddleware conflicts
+        if os.getenv("TESTING_SKIP_AUDIT"):
+            return await call_next(request)
+            
         # Skip non-state-changing methods
         if request.method not in self.STATE_CHANGING_METHODS:
             return await call_next(request)

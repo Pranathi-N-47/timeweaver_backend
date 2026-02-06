@@ -31,7 +31,7 @@ import enum
 from sqlalchemy import Column, Integer, String, Text, Boolean, Float, DateTime, JSON
 from sqlalchemy.dialects.postgresql import ARRAY, ENUM as SQLEnum
 from sqlalchemy.sql import func
-from app.db.base import Base
+from app.db.session import Base
 
 
 class RuleType(str, enum.Enum):
@@ -78,7 +78,7 @@ class InstitutionalRule(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(200), nullable=False, unique=True)
     description = Column(Text, nullable=True)
-    rule_type = Column(SQLEnum(RuleType), nullable=False, index=True)
+    rule_type = Column(String, nullable=False, index=True)
     
     # Flexible JSON configuration (rule-specific)
     configuration = Column(JSON, nullable=False)

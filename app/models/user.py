@@ -87,7 +87,7 @@ class User(Base):
     
     # User Information
     full_name = Column(String(100), nullable=False)
-    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.STUDENT)
+    role = Column(String, nullable=False, default=UserRole.STUDENT.value)
     
     # Status Flags
     is_active = Column(Boolean, default=True, nullable=False)

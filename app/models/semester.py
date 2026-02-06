@@ -85,7 +85,7 @@ class Semester(Base):
     # Core Fields
     name = Column(String(100), nullable=False)  # E.g., "Fall 2026"
     academic_year = Column(String(20), nullable=False)  # E.g., "2026-2027"
-    semester_type = Column(SQLEnum(SemesterType), nullable=False)  # ODD or EVEN (campus-wide)
+    semester_type = Column(String, nullable=False)  # ODD or EVEN (campus-wide)
     start_date = Column(Date, nullable=False)  # Semester start date
     end_date = Column(Date, nullable=False)  # Semester end date
     is_active = Column(Boolean, default=True)  # Active/inactive flag

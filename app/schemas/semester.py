@@ -43,6 +43,8 @@ class SemesterResponse(SemesterBase):
     created_at: Optional[date] = None
     updated_at: Optional[date] = None
     
+    semester_type: str
+    
     model_config = ConfigDict(from_attributes=True)
 
 
