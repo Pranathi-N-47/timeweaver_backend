@@ -42,12 +42,14 @@ async def test_db() -> AsyncGenerator[AsyncSession, None]:
     Create a test database session.
     
     Ensures tables are created for the test session.
+    Uses 'timeweaver_test' database instead of production database.
     """
-    # Ensure usage of async driver
-    database_url = settings.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://")
+    # Use postgres user for tests (default superuser) with correct password
+    test_database_url = "postgresql+asyncpg://postgres:luckypandu911@localhost:5432/timeweaver_test"
+    
     # Disable statement cache to prevent InvalidCachedStatementError when schemas are recreated
     engine = create_async_engine(
-        database_url, 
+        test_database_url, 
         echo=False,
         connect_args={"statement_cache_size": 0}
     )

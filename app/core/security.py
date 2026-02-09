@@ -17,12 +17,18 @@ from app.core.config import settings
 
 
 # Password hashing context using bcrypt
-# truncate_error=False allows passwords longer than 72 bytes (bcrypt's limit)
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto",
-    bcrypt__truncate_error=False  # Automatically truncate long passwords instead of erroring
-)
+# Bcrypt has a max password length of 72 bytes
+# Disable default bcrypt settings to avoid version compatibility issues
+try:
+    pwd_context = CryptContext(
+        schemes=["bcrypt"],
+        deprecated="auto",
+        bcrypt__rounds=12
+    )
+except Exception:
+    # Fallback: create a basic context if there are version issues
+    from passlib.handlers.bcrypt import bcrypt
+    pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # JWT Configuration
 ALGORITHM = "HS256"

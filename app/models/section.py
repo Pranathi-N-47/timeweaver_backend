@@ -26,6 +26,7 @@ class Section(Base):
     
     # Core Fields
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
+    faculty_id = Column(Integer, ForeignKey("faculty.id"), nullable=True)  # Primary faculty for this section
     name = Column(String(50), nullable=False)  # Section name (e.g., "CSE-A")
     
     # Batch lifecycle (permanent over 4 years)
@@ -44,6 +45,7 @@ class Section(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
+    faculty = relationship("Faculty", back_populates="sections")
     # department = relationship("Department", back_populates="sections")
     # dedicated_room = relationship("Room", back_populates="sections") # Assuming Room model exists
     

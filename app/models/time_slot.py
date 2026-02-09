@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Time, Boolean, DateTime, CheckConstraint
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.session import Base
 
@@ -17,6 +18,9 @@ class TimeSlot(Base):
     duration_minutes = Column(Integer, nullable=False)
     is_break = Column(Boolean, default=False)
     slot_type = Column(String(50), default="regular")
+    
+    # Relationships
+    faculty_preferences = relationship("FacultyPreference", back_populates="time_slot")
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -20,6 +20,7 @@ class Department(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
     # Relationships
+    faculty = relationship("Faculty", back_populates="department")
     # sections = relationship("Section", back_populates="department")
     # courses = relationship("Course", back_populates="department")
     

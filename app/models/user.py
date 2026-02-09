@@ -13,6 +13,7 @@ This module defines the User model which represents system users with different 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, Enum as SQLEnum, ForeignKey
 from sqlalchemy.sql import func
 import enum
+from sqlalchemy.orm import relationship
 from app.db.session import Base
 
 
@@ -97,6 +98,9 @@ class User(Base):
     faculty_id = Column(Integer, nullable=True)  # Will add FK when Faculty model exists
     student_id = Column(Integer, nullable=True)  # Will add FK when Student model exists
     
+    # Relationships
+    faculty = relationship("Faculty", back_populates="user", uselist=False)
+    
     # Password Reset Fields
     reset_token = Column(String(255), nullable=True, index=True)
     reset_token_expires_at = Column(DateTime(timezone=True), nullable=True)
@@ -108,4 +112,4 @@ class User(Base):
     
     def __repr__(self):
         """String representation for debugging."""
-        return f"<User(id={self.id}, username='{self.username}', role='{self.role.value}')>"
+        return f"<User(id={self.id}, username='{self.username}', role='{self.role}')>"

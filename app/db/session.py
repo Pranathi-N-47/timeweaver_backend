@@ -85,3 +85,8 @@ async def get_db():
         finally:
             # Always close the session
             await session.close()
+
+
+# Backwards compatibility alias: some tests/imports expect `SessionLocal`
+# Provide a name that points to the async session factory so imports succeed.
+SessionLocal = AsyncSessionLocal
