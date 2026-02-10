@@ -7,8 +7,8 @@ Run: python main.py
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field, field_validator
+from typing import Optional, Literal
 import uvicorn
 
 app = FastAPI(title="Academic Setup API", version="1.0.0")
@@ -48,13 +48,20 @@ class Course(BaseModel):
     id: Optional[int] = None
     code: str
     name: str
-    credits: int
+    credits: int = Field(..., gt=0)
     department_id: int
     theory_hours: int = 0
     lab_hours: int = 0
     tutorial_hours: int = 0
     is_elective: bool = False
     requires_lab: bool = False
+    
+    @field_validator('credits')
+    @classmethod
+    def validate_credits(cls, v):
+        if v <= 0:
+            raise ValueError('Credits must be positive')
+        return v
 
 class Section(BaseModel):
     id: Optional[int] = None
@@ -62,7 +69,14 @@ class Section(BaseModel):
     name: str
     batch_year_start: int
     batch_year_end: int
-    student_count: int
+    student_count: int = Field(..., gt=0)
+    
+    @field_validator('student_count')
+    @classmethod
+    def validate_student_count(cls, v):
+        if v <= 0:
+            raise ValueError('Student count must be positive')
+        return v
 
 # Initialize with mock data
 def init_data():
