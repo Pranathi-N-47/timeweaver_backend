@@ -65,23 +65,15 @@ class TimetableCreate(BaseModel):
     
     Attributes:
         semester_id: ID of semester to generate timetable for
-        algorithm: Generation algorithm to use (default: GA)
         num_solutions: Number of alternative solutions to generate (default: 5)
-        max_generations: Maximum GA/SA generations (default: 100)
-        population_size: GA population size (default: 50)
+    
+    Note: The system uses optimized internal parameters for best results.
     
     Example:
-        >>> request = TimetableCreate(
-        ...     semester_id=1,
-        ...     algorithm=GenerationAlgorithm.GA,
-        ...     num_solutions=5
-        ... )
+        >>> request = TimetableCreate(semester_id=1, num_solutions=3)
     """
     semester_id: int = Field(..., gt=0, description="Semester ID to generate timetable for")
-    algorithm: GenerationAlgorithm = Field(default=GenerationAlgorithm.GA, description="Generation algorithm")
     num_solutions: int = Field(default=5, ge=1, le=10, description="Number of solutions to generate")
-    max_generations: int = Field(default=100, ge=10, le=500, description="Maximum generations")
-    population_size: int = Field(default=50, ge=10, le=200, description="Population size (GA only)")
 
 
 class SlotLockRequest(BaseModel):

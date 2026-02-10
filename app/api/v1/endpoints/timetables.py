@@ -76,13 +76,13 @@ async def generate_timetable(
     current_admin: User = Depends(get_current_admin)
 ):
     """
-    Generate a new timetable using specified algorithm.
+    Generate a new timetable using Genetic Algorithm.
     
     **Epic 3: User Story 3.3.2** - Timetable Generation
     **Permissions:** Admin only
     
     Args:
-        request: Generation parameters (semester_id, algorithm, etc.)
+        request: Generation parameters (semester_id, num_solutions, etc.)
         db: Database session
         current_admin: Current admin user
         
@@ -98,10 +98,7 @@ async def generate_timetable(
         POST /api/v1/timetables/generate
         {
             "semester_id": 1,
-            "algorithm": "GA",
-            "num_solutions": 5,
-            "max_generations": 100,
-            "population_size": 50
+            "num_solutions": 5
         }
         ```
     """
@@ -121,22 +118,12 @@ async def generate_timetable(
         )
     
     try:
-        # Initialize generator
-        if request.algorithm == "GA":
-            generator = GeneticAlgorithmGenerator(
-                db=db,
-                population_size=request.population_size,
-                max_generations=request.max_generations
-            )
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=create_error_response(
-                    "UNSUPPORTED_ALGORITHM",
-                    f"Algorithm '{request.algorithm}' not supported yet. Use 'GA'.",
-                    400
-                )
-            )
+        # Initialize GA generator with optimized defaults
+        generator = GeneticAlgorithmGenerator(
+            db=db,
+            population_size=50,  # Optimized default
+            max_generations=100  # Optimized default
+        )
         
         # Generate timetable
         start_time = datetime.now()
@@ -161,7 +148,7 @@ async def generate_timetable(
         best_solution = solutions[0]
         
         # Update metadata
-        best_solution.generation_algorithm = request.algorithm
+        best_solution.generation_algorithm = "GA"  # Always use Genetic Algorithm
         best_solution.generation_time_seconds = generation_time
         best_solution.created_by_user_id = current_admin.id
         best_solution.status = TimetableStatus.COMPLETED
