@@ -100,6 +100,7 @@ class User(Base):
     
     # Relationships
     faculty = relationship("Faculty", back_populates="user", uselist=False)
+    student = relationship("Student", back_populates="user", uselist=False)
     
     # Password Reset Fields
     reset_token = Column(String(255), nullable=True, index=True)

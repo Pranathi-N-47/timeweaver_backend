@@ -27,7 +27,8 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     semesters, departments, sections, courses,
     elective_groups, rooms, time_slots, constraints, auth, users, audit_logs,
-    timetables, institutional_rules, faculty_leaves
+    timetables, institutional_rules, faculty_leaves, faculty, faculty_preferences,
+    students
 )
 
 # Create main API router for version 1
@@ -38,6 +39,13 @@ api_router.include_router(auth.router, tags=["authentication"])
 
 # Epic 7: User Management (8 endpoints)
 api_router.include_router(users.router, prefix="/users", tags=["users"])
+
+# Epic 4: Faculty Management (CRUD + workload)
+api_router.include_router(faculty.router, prefix="/faculty", tags=["faculty"])
+api_router.include_router(faculty_preferences.router, prefix="/faculty-preferences", tags=["faculty-preferences"])
+
+# Student Management (CRUD)
+api_router.include_router(students.router, prefix="/students", tags=["students"])
 
 # Epic 7: Audit Logs (2 endpoints - Phase 2)
 api_router.include_router(audit_logs.router, prefix="/audit-logs", tags=["audit-logs"])

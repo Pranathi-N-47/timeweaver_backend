@@ -12,12 +12,13 @@
 5. [Academic Entities](#academic-entities)
 6. [Timetable Generation](#timetable-generation)
 7. [Institutional Rules](#institutional-rules)
-8. [Faculty Management](#faculty-management) ⭐ NEW
-9. [Faculty Preferences](#faculty-preferences) ⭐ NEW
-10. [Substitutes](#substitutes) ⭐ NEW
-11. [Faculty Leaves](#faculty-leaves)
-12. [Slot Locking](#slot-locking)
-13. [Frontend Implementation Guide](#frontend-implementation-guide)
+8. [Faculty Management](#faculty-management)
+9. [Faculty Preferences](#faculty-preferences)
+10. [Student Management](#student-management) ⭐ NEW
+11. [Substitutes](#substitutes)
+12. [Faculty Leaves](#faculty-leaves)
+13. [Slot Locking](#slot-locking)
+14. [Frontend Implementation Guide](#frontend-implementation-guide)
 
 ---
 
@@ -98,6 +99,8 @@
 | Method | Endpoint | Auth | Role | Description |
 |--------|----------|------|------|-------------|
 | `POST` | `/users/` | ✅ | Admin | Create user |
+| `POST` | `/users/create-faculty` | ✅ | Admin | **Create user + faculty profile in one step** ⭐ |
+| `POST` | `/users/create-student` | ✅ | Admin | **Create user + student profile in one step** ⭐ |
 | `GET` | `/users/` | ✅ | Admin | List users |
 | `GET` | `/users/{id}` | ✅ | Admin | Get user |
 | `PUT` | `/users/{id}` | ✅ | Admin | Update user |
@@ -109,7 +112,7 @@
 ### `POST /users/` - Create User
 
 | Field | Type | Required | Validation | Example |
-|-------|------|----------|------------|---------|
+|-------|------|----------|------------|--------|
 | `username` | string | ✅ | 3-50 chars | `"john_doe"` |
 | `email` | string | ✅ | Valid email | `"john@university.edu"` |
 | `password` | string | ✅ | 8-100 chars, strength rules | `"SecureP@ss123!"` |
@@ -118,6 +121,88 @@
 | `is_active` | boolean | ❌ | Default: `true` | `true` |
 | `faculty_id` | integer | ❌ | Link to faculty entity | `5` |
 | `student_id` | integer | ❌ | Link to student entity | `null` |
+
+### `POST /users/create-faculty` - Create Faculty User (Unified) ⭐
+
+Creates both a **User account** (with `role=faculty`) and a **Faculty profile** in a single atomic transaction. This is the recommended way to register faculty members.
+
+| Field | Type | Required | Validation | Example |
+|-------|------|----------|------------|--------|
+| `username` | string | ✅ | 3-50 chars, unique | `"dr_sharma"` |
+| `email` | string | ✅ | Valid email, unique | `"sharma@university.edu"` |
+| `password` | string | ✅ | 8-100 chars, strength rules | `"SecureP@ss123"` |
+| `full_name` | string | ✅ | 1-100 chars | `"Dr. Priya Sharma"` |
+| `employee_id` | string | ✅ | 1-20 chars, unique | `"FAC001"` |
+| `department_id` | integer | ✅ | > 0, must exist | `1` |
+| `designation` | string | ❌ | Max 50 chars, default: `"Lecturer"` | `"Professor"` |
+| `max_hours_per_week` | integer | ❌ | 1-50, default: 18 | `20` |
+
+**Response:**
+```json
+{
+  "user": {
+    "id": 5,
+    "username": "dr_sharma",
+    "email": "sharma@university.edu",
+    "full_name": "Dr. Priya Sharma",
+    "role": "faculty",
+    "is_active": true,
+    "is_superuser": false,
+    "faculty_id": 1,
+    "student_id": null,
+    "created_at": "2026-02-11T00:00:00Z",
+    "updated_at": "2026-02-11T00:00:00Z",
+    "last_login": null
+  },
+  "faculty_id": 1,
+  "employee_id": "FAC001",
+  "department_id": 1,
+  "designation": "Professor",
+  "max_hours_per_week": 20
+}
+```
+
+> **Note:** The role is automatically set to `faculty`. You do not need to specify it.
+
+### `POST /users/create-student` - Create Student User (Unified) ⭐
+
+Creates both a **User account** (with `role=student`) and a **Student profile** in a single atomic transaction. This is the recommended way to register students.
+
+| Field | Type | Required | Validation | Example |
+|-------|------|----------|------------|--------|
+| `username` | string | ✅ | 3-50 chars, unique | `"student_ravi"` |
+| `email` | string | ✅ | Valid email, unique | `"ravi@university.edu"` |
+| `password` | string | ✅ | 8-100 chars, strength rules | `"SecureP@ss123"` |
+| `full_name` | string | ✅ | 1-100 chars | `"Ravi Kumar"` |
+| `roll_no` | string | ✅ | 1-20 chars, unique | `"21CSE101"` |
+| `department_id` | integer | ✅ | > 0, must exist | `1` |
+| `section_id` | integer | ✅ | > 0, must belong to department | `3` |
+
+**Response:**
+```json
+{
+  "user": {
+    "id": 10,
+    "username": "student_ravi",
+    "email": "ravi@university.edu",
+    "full_name": "Ravi Kumar",
+    "role": "student",
+    "is_active": true,
+    "is_superuser": false,
+    "faculty_id": null,
+    "student_id": 1,
+    "created_at": "2026-02-11T00:00:00Z",
+    "updated_at": "2026-02-11T00:00:00Z",
+    "last_login": null
+  },
+  "student_id": 1,
+  "roll_no": "21CSE101",
+  "department_id": 1,
+  "section_id": 3
+}
+```
+
+> **Note:** The role is automatically set to `student`. The `section_id` must belong to the given `department_id`.
 
 ### `PUT /users/{id}` - Update User
 
@@ -520,10 +605,13 @@ All fields optional:
 | `DELETE` | `/faculty/{id}` | ✅ | Admin | Delete faculty |
 | `GET` | `/faculty/{id}/workload` | ✅ | Any | Get workload for semester |
 
-### `POST /faculty/` - Create Faculty
+### `POST /faculty/` - Create Faculty (⚠️ DEPRECATED)
+
+> [!WARNING]
+> This endpoint is **deprecated**. Use `POST /users/create-faculty` instead, which creates both the User and Faculty in one step.
 
 | Field | Type | Required | Validation | Example |
-|-------|------|----------|------------|---------|
+|-------|------|----------|------------|--------|
 | `user_id` | integer | ✅ | > 0, unique | `5` |
 | `employee_id` | string | ✅ | 1-20 chars, unique | `"FAC001"` |
 | `department_id` | integer | ✅ | > 0 | `1` |
@@ -581,6 +669,35 @@ All fields optional:
 | `preference_type` | enum | ✅ | `preferred`, `not_available` | `"not_available"` |
 
 > **Note:** Faculty can only set their own preferences. Admins can set for any faculty.
+
+---
+
+## Student Management
+
+### Endpoints
+
+| Method | Endpoint | Auth | Role | Description |
+|--------|----------|------|------|-------------|
+| `GET` | `/students/` | ✅ | Admin | List all students |
+| `GET` | `/students/{id}` | ✅ | Any | Get student details |
+| `PUT` | `/students/{id}` | ✅ | Admin | Update student profile |
+| `DELETE` | `/students/{id}` | ✅ | Admin | Delete student |
+
+### `GET /students/` - Query Parameters
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `skip` | integer | Pagination offset (default: 0) |
+| `limit` | integer | Page size (default: 100) |
+| `department_id` | integer | Filter by department |
+| `section_id` | integer | Filter by section |
+
+### `PUT /students/{id}` - Update Student
+
+| Field | Type | Validation |
+|-------|------|------------|
+| `department_id` | integer | > 0 |
+| `section_id` | integer | > 0 |
 
 ---
 
@@ -744,7 +861,7 @@ const handleApiError = (response) => {
 | Category | Endpoints |
 |----------|-----------|
 | Authentication | 6 |
-| Users | 8 |
+| Users | 10 |
 | Audit Logs | 2 |
 | Semesters | 5 |
 | Departments | 5 |
@@ -758,7 +875,8 @@ const handleApiError = (response) => {
 | Institutional Rules | 6 |
 | **Faculty Management** | **6** |
 | **Faculty Preferences** | **5** |
+| **Student Management** | **4** |
 | **Substitutes** | **2** |
 | Faculty Leaves | 6 |
 | Slot Locks | 3 |
-| **Total** | **92** |
+| **Total** | **98** |

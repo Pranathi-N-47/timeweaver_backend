@@ -17,13 +17,21 @@ from typing import Optional
 
 from app.db.session import get_db
 from app.models.user import User, UserRole
+from app.models.faculty import Faculty
+from app.models.student import Student
+from app.models.department import Department
+from app.models.section import Section
 from app.models.audit_log import AuditLog
 from app.schemas.user import (
     UserCreate,
     UserUpdate,
     UserUpdatePassword,
     UserResponse,
-    UserListResponse
+    UserListResponse,
+    CreateFacultyUser,
+    FacultyUserResponse,
+    CreateStudentUser,
+    StudentUserResponse
 )
 from app.core.security import hash_password, verify_password
 from app.core.dependencies import get_current_user, get_current_admin
@@ -105,6 +113,275 @@ async def create_user(
     await db.commit()
     
     return user
+
+
+@router.post("/create-faculty", response_model=FacultyUserResponse, status_code=status.HTTP_201_CREATED)
+async def create_faculty_user(
+    data: CreateFacultyUser,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
+):
+    """
+    Create a new faculty member (User + Faculty profile) in one step. (Admin only)
+    
+    This is the **preferred endpoint** for registering faculty. It creates both the
+    User account (with role=faculty) and the Faculty profile in a single transaction.
+    
+    **Permissions:** Admin only
+    
+    **Request Body:**
+    - username: Unique username for login
+    - email: Unique email address
+    - password: Password (must meet strength requirements)
+    - full_name: Faculty member's full name
+    - employee_id: Unique employee identifier (e.g., "FAC001")
+    - department_id: ID of the department the faculty belongs to
+    - designation: Faculty designation (default: "Lecturer")
+    - max_hours_per_week: Maximum teaching hours per week (default: 18)
+    
+    **Example:**
+    ```json
+    {
+        "username": "dr_sharma",
+        "email": "sharma@university.edu",
+        "password": "SecureP@ss123",
+        "full_name": "Dr. Priya Sharma",
+        "employee_id": "FAC001",
+        "department_id": 1,
+        "designation": "Professor",
+        "max_hours_per_week": 20
+    }
+    ```
+    """
+    # Check username uniqueness
+    result = await db.execute(select(User).where(User.username == data.username))
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Username '{data.username}' already exists"
+        )
+    
+    # Check email uniqueness
+    result = await db.execute(select(User).where(User.email == data.email))
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Email '{data.email}' already exists"
+        )
+    
+    # Check employee_id uniqueness
+    result = await db.execute(select(Faculty).where(Faculty.employee_id == data.employee_id))
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Employee ID '{data.employee_id}' already exists"
+        )
+    
+    # Verify department exists
+    result = await db.execute(select(Department).where(Department.id == data.department_id))
+    if not result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Department with id {data.department_id} not found"
+        )
+    
+    # Create User with role=faculty
+    user = User(
+        username=data.username,
+        email=data.email,
+        hashed_password=hash_password(data.password),
+        full_name=data.full_name,
+        role=UserRole.FACULTY.value,
+        is_active=True
+    )
+    db.add(user)
+    await db.flush()  # Get user.id without committing
+    
+    # Create Faculty profile linked to the user
+    faculty = Faculty(
+        user_id=user.id,
+        employee_id=data.employee_id,
+        department_id=data.department_id,
+        designation=data.designation,
+        max_hours_per_week=data.max_hours_per_week
+    )
+    db.add(faculty)
+    await db.flush()  # Get faculty.id
+    
+    # Link user back to faculty
+    user.faculty_id = faculty.id
+    
+    # Audit log
+    audit_log = AuditLog(
+        user_id=current_admin.id,
+        action="create",
+        entity_type="faculty_user",
+        entity_id=user.id,
+        changes={
+            "after": {
+                "username": user.username,
+                "email": user.email,
+                "role": "faculty",
+                "employee_id": data.employee_id,
+                "department_id": data.department_id,
+                "designation": data.designation
+            }
+        }
+    )
+    db.add(audit_log)
+    
+    # Commit everything in one transaction
+    await db.commit()
+    await db.refresh(user)
+    await db.refresh(faculty)
+    
+    return FacultyUserResponse(
+        user=UserResponse.model_validate(user),
+        faculty_id=faculty.id,
+        employee_id=faculty.employee_id,
+        department_id=faculty.department_id,
+        designation=faculty.designation,
+        max_hours_per_week=faculty.max_hours_per_week
+    )
+
+
+@router.post("/create-student", response_model=StudentUserResponse, status_code=status.HTTP_201_CREATED)
+async def create_student_user(
+    data: CreateStudentUser,
+    db: AsyncSession = Depends(get_db),
+    current_admin: User = Depends(get_current_admin)
+):
+    """
+    Create a new student (User + Student profile) in one step. (Admin only)
+    
+    Creates both the User account (with role=student) and the Student profile
+    in a single transaction.
+    
+    **Permissions:** Admin only
+    
+    **Request Body:**
+    - username: Unique username for login
+    - email: Unique email address
+    - password: Password (must meet strength requirements)
+    - full_name: Student's full name
+    - roll_no: Unique roll number (e.g., "21CSE101")
+    - department_id: ID of the department
+    - section_id: ID of the section (must belong to the department)
+    
+    **Example:**
+    ```json
+    {
+        "username": "student_ravi",
+        "email": "ravi@university.edu",
+        "password": "SecureP@ss123",
+        "full_name": "Ravi Kumar",
+        "roll_no": "21CSE101",
+        "department_id": 1,
+        "section_id": 3
+    }
+    ```
+    """
+    # Check username uniqueness
+    result = await db.execute(select(User).where(User.username == data.username))
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Username '{data.username}' already exists"
+        )
+    
+    # Check email uniqueness
+    result = await db.execute(select(User).where(User.email == data.email))
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Email '{data.email}' already exists"
+        )
+    
+    # Check roll_no uniqueness
+    result = await db.execute(select(Student).where(Student.roll_no == data.roll_no))
+    if result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Roll number '{data.roll_no}' already exists"
+        )
+    
+    # Verify department exists
+    result = await db.execute(select(Department).where(Department.id == data.department_id))
+    if not result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Department with id {data.department_id} not found"
+        )
+    
+    # Verify section exists and belongs to the department
+    result = await db.execute(
+        select(Section).where(
+            Section.id == data.section_id,
+            Section.department_id == data.department_id
+        )
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Section with id {data.section_id} not found in department {data.department_id}"
+        )
+    
+    # Create User with role=student
+    user = User(
+        username=data.username,
+        email=data.email,
+        hashed_password=hash_password(data.password),
+        full_name=data.full_name,
+        role=UserRole.STUDENT.value,
+        is_active=True
+    )
+    db.add(user)
+    await db.flush()
+    
+    # Create Student profile linked to the user
+    student = Student(
+        user_id=user.id,
+        roll_no=data.roll_no,
+        department_id=data.department_id,
+        section_id=data.section_id
+    )
+    db.add(student)
+    await db.flush()
+    
+    # Link user back to student
+    user.student_id = student.id
+    
+    # Audit log
+    audit_log = AuditLog(
+        user_id=current_admin.id,
+        action="create",
+        entity_type="student_user",
+        entity_id=user.id,
+        changes={
+            "after": {
+                "username": user.username,
+                "email": user.email,
+                "role": "student",
+                "roll_no": data.roll_no,
+                "department_id": data.department_id,
+                "section_id": data.section_id
+            }
+        }
+    )
+    db.add(audit_log)
+    
+    # Commit everything in one transaction
+    await db.commit()
+    await db.refresh(user)
+    await db.refresh(student)
+    
+    return StudentUserResponse(
+        user=UserResponse.model_validate(user),
+        student_id=student.id,
+        roll_no=student.roll_no,
+        department_id=student.department_id,
+        section_id=student.section_id
+    )
 
 
 @router.get("/", response_model=UserListResponse)

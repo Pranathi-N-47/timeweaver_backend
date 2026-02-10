@@ -31,40 +31,30 @@ from app.services.workload_calculator import WorkloadCalculator
 router = APIRouter()
 
 
-@router.post("/", response_model=FacultyResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=FacultyResponse, status_code=status.HTTP_201_CREATED,
+              deprecated=True)
 async def create_faculty(
     faculty_data: FacultyCreate,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_current_admin)
 ) -> FacultyResponse:
     """
-    Create a new faculty profile (admin only).
+    **DEPRECATED** — Use `POST /api/v1/users/create-faculty` instead.
     
-    Args:
-        faculty_data: Faculty creation data
-        db: Database session
-        admin: Current admin user
-        
-    Returns:
-        FacultyResponse: Created faculty object
-        
-    Raises:
-        HTTPException 400: If employee_id or user_id already exists
-        HTTPException 401: If user is not admin
-        HTTPException 404: If user or department not found
-        
-    Test Coverage: tests/test_faculty.py::test_create_faculty_admin
-    
-    Example:
-        POST /api/v1/faculty
-        {
-            "user_id": 5,
-            "employee_id": "FAC001",
-            "department_id": 1,
-            "designation": "Professor",
-            "max_hours_per_week": 20
-        }
+    That endpoint creates both the User account and Faculty profile in one step.
+    This endpoint is kept only for backward compatibility and requires a pre-existing user_id.
     """
+    # Verify the user exists and has faculty role
+    query = select(User).where(User.id == faculty_data.user_id)
+    result = await db.execute(query)
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User with id {faculty_data.user_id} not found. "
+                   f"Use POST /api/v1/users/create-faculty to create both user and faculty in one step."
+        )
+    
     # Check if faculty already exists for this user
     query = select(Faculty).where(Faculty.user_id == faculty_data.user_id)
     result = await db.execute(query)
