@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from app.db.session import get_db
 from app.models.user import User
 from app.models.audit_log import AuditLog
@@ -84,7 +84,7 @@ async def login(
     await db.execute(
         update(User)
         .where(User.id == user.id)
-        .values(last_login=datetime.utcnow())
+        .values(last_login=datetime.now(timezone.utc))
     )
     
     # Create audit log entry
@@ -237,13 +237,11 @@ async def forgot_password(
         db.add(audit_log)
         await db.commit()
         
-        # TODO: In production, send email with reset link
+        # TODO: Send email with reset link
         # send_password_reset_email(user.email, reset_token)
         
-        # For development only: Return token in response
-        # In production, remove this and only send via email
         return ForgotPasswordResponse(
-            message=f"Password reset email sent to {request.email}. Check your inbox for the reset link. [DEV: Token = {reset_token}]",
+            message=f"If an account with {request.email} exists, a password reset email has been sent.",
             reset_token_expires_in=30
         )
     

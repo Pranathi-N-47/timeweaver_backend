@@ -14,7 +14,7 @@ Dependencies:
 
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from app.db.session import Base
 
 
@@ -43,8 +43,8 @@ class Student(Base):
     roll_no = Column(String(20), unique=True, nullable=False, index=True)
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
     section_id = Column(Integer, ForeignKey("sections.id"), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
     user = relationship("User", back_populates="student")

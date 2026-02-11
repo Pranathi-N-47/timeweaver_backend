@@ -2,13 +2,13 @@
 Pytest configuration and shared fixtures for automated tests.
 """
 
+import os
 import pytest
 import asyncio
 from typing import AsyncGenerator, Generator
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
-from app.main import app
 from app.main import app
 from app.db.session import get_db, Base
 from app.core.config import settings
@@ -44,8 +44,11 @@ async def test_db() -> AsyncGenerator[AsyncSession, None]:
     Ensures tables are created for the test session.
     Uses 'timeweaver_test' database instead of production database.
     """
-    # Use postgres user for tests (default superuser) with correct password
-    test_database_url = "postgresql+asyncpg://postgres:luckypandu911@localhost:5432/timeweaver_test"
+    # Use TEST_DATABASE_URL from environment (never hardcode credentials)
+    test_database_url = os.getenv(
+        "TEST_DATABASE_URL",
+        "postgresql+asyncpg://postgres:your_password_here@localhost:5432/timeweaver_test"
+    )
     
     # Disable statement cache to prevent InvalidCachedStatementError when schemas are recreated
     engine = create_async_engine(

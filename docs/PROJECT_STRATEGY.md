@@ -9,17 +9,17 @@
 > [!CAUTION]
 > These are security and correctness issues that should be resolved before any new feature work.
 
-| # | Task | Repo | File(s) | Effort | Why First |
-|---|------|------|---------|--------|-----------|
-| 0.1 | **Remove hardcoded DB password from test fixtures** | Backend | `tests/conftest.py:48` | 10 min | Security — repo is public, password is exposed |
-| 0.2 | **Remove hardcoded password from `.env`** (or add `.env` to `.gitignore`) | Backend | `.env` | 5 min | `dark$citrus` password is committed |
-| 0.3 | **Change `SECRET_KEY` from dev value** | Backend | `.env:13` | 5 min | `dev-secret-key-change-in-production-abc123xyz` is guessable |
-| 0.4 | **Remove reset token from API response** | Backend | `auth.py:246` | 10 min | Leaks password reset token in response body |
-| 0.5 | **Fix `datetime.utcnow()` deprecation** | Backend | `security.py`, models | 30 min | Python 3.12 deprecated — use `datetime.now(timezone.utc)` |
-| 0.6 | **Remove duplicate import** | Backend | `conftest.py:11-12` | 1 min | `from app.main import app` imported twice |
-| 0.7 | **Fix broken docstring** | Backend | `audit_middleware.py:23-25` | 1 min | Word "operations" split across lines |
-| 0.8 | **Delete or rewrite `Dashboard.test.jsx`** | Frontend | `tests/pages/faculty/Dashboard.test.jsx` | 30 min | Uses React Testing Library but project is vanilla JS — tests can't run |
-| 0.9 | **Fix directory typo** | Frontend | `src/dashboard/student_dashbord/` | 2 min | Rename to `student_dashboard` |
+| # | Task | Repo | File(s) | Status |
+|---|------|------|---------|--------|
+| 0.1 | **Remove hardcoded DB password from test fixtures** | Backend | `tests/conftest.py` | ✅ Uses `os.getenv("TEST_DATABASE_URL")` |
+| 0.2 | **Remove hardcoded password from `.env`** | Backend | `.env` | ✅ Password replaced, `.env` in `.gitignore` |
+| 0.3 | **Change `SECRET_KEY` from dev value** | Backend | `.env` | ✅ Rotated to 64-byte random key |
+| 0.4 | **Remove reset token from API response** | Backend | `auth.py` | ✅ Token no longer leaked in response |
+| 0.5 | **Fix `datetime.utcnow()` deprecation** | Backend | `security.py`, models | ✅ 5 files → `datetime.now(timezone.utc)` |
+| 0.6 | **Remove duplicate import** | Backend | `conftest.py` | ✅ Done |
+| 0.7 | **Fix broken docstring** | Backend | `audit_middleware.py` | ✅ Done |
+| 0.8 | **Delete or rewrite `Dashboard.test.jsx`** | Frontend | `tests/pages/faculty/` | ⬜ Pending |
+| 0.9 | **Fix directory typo** | Frontend | `student_dashbord/` | ✅ Already fixed |
 
 ---
 

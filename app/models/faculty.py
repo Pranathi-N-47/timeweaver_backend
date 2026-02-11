@@ -16,7 +16,7 @@ Dependencies:
 
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 from app.db.session import Base
 
 
@@ -47,8 +47,8 @@ class Faculty(Base):
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
     designation = Column(String(50), default="Lecturer")  # Professor, Assoc Prof, Lecturer
     max_hours_per_week = Column(Integer, default=18)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
     user = relationship("User", back_populates="faculty")
@@ -84,8 +84,8 @@ class FacultyPreference(Base):
     day_of_week = Column(Integer, nullable=False)  # 0-6: Monday-Sunday
     time_slot_id = Column(Integer, ForeignKey("time_slots.id"), nullable=False)
     preference_type = Column(String(20), nullable=False)  # "preferred" or "not_available"
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     
     # Relationships
     faculty = relationship("Faculty", back_populates="preferences")

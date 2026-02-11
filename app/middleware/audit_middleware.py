@@ -20,9 +20,7 @@ from app.core.security import decode_access_token
 
 class AuditLoggingMiddleware(BaseHTTPMiddleware):
     """
-    Middleware that automatically logs all state-changing
-
- operations.
+    Middleware that automatically logs all state-changing operations.
     
     Captures:
     - HTTP method, path, query parameters

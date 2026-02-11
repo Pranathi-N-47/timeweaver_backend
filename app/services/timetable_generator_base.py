@@ -28,7 +28,7 @@ User Stories: 3.3.2 (Multi-Solution Generation)
 
 import random
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import select
 
@@ -77,7 +77,7 @@ class TimetableGeneratorBase:
             quality_score=0.0,
             is_published=False,
             generation_algorithm=algorithm,
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
         )
         
         self.db.add(timetable)

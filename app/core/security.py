@@ -9,7 +9,7 @@ This module provides:
 - Security configuration
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -98,9 +98,9 @@ def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta]
     
     # Set expiration time
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
     to_encode.update({"exp": expire})
     
@@ -164,7 +164,7 @@ def create_reset_token_expiry() -> datetime:
         expires = create_reset_token_expiry()
         # Returns: datetime 30 minutes in the future
     """
-    return datetime.utcnow() + timedelta(minutes=30)
+    return datetime.now(timezone.utc) + timedelta(minutes=30)
 
 
 def is_reset_token_expired(expires_at: Optional[datetime]) -> bool:
@@ -184,7 +184,7 @@ def is_reset_token_expired(expires_at: Optional[datetime]) -> bool:
     """
     if expires_at is None:
         return True
-    return datetime.utcnow() > expires_at
+    return datetime.now(timezone.utc) > expires_at
 
 
 def get_password_hash(password: str) -> str:
