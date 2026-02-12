@@ -55,6 +55,7 @@ class Faculty(Base):
     department = relationship("Department", back_populates="faculty")
     sections = relationship("Section", back_populates="faculty")
     preferences = relationship("FacultyPreference", back_populates="faculty", cascade="all, delete-orphan")
+    course_assignments = relationship("FacultyCourse", back_populates="faculty", cascade="all, delete-orphan")
 
 
 class FacultyPreference(Base):

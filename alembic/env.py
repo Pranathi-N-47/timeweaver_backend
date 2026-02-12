@@ -31,6 +31,7 @@ from app.models.constraint import Constraint
 from app.models.user import User
 from app.models.audit_log import AuditLog
 from app.models.faculty import Faculty, FacultyPreference
+from app.models.faculty_course import FacultyCourse
 from app.models.student import Student
 # Add more model imports as you create them
 

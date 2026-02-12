@@ -8,6 +8,7 @@ from app.models.curriculum import Curriculum, CourseElectiveAssignment, CourseBa
 from app.models.institutional_rule import InstitutionalRule, RuleType
 from app.models.faculty_leave import FacultyLeave, LeaveType, LeaveStrategy, LeaveStatus
 from app.models.faculty import Faculty, FacultyPreference
+from app.models.faculty_course import FacultyCourse
 from app.models.time_slot import TimeSlot
 
 
@@ -21,5 +22,6 @@ __all__ = [
     "InstitutionalRule", "RuleType",
     "FacultyLeave", "LeaveType", "LeaveStrategy", "LeaveStatus",
     "Faculty", "FacultyPreference",
+    "FacultyCourse",
     "TimeSlot"
 ]

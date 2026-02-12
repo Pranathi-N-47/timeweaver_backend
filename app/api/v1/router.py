@@ -28,7 +28,7 @@ from app.api.v1.endpoints import (
     semesters, departments, sections, courses,
     elective_groups, rooms, time_slots, constraints, auth, users, audit_logs,
     timetables, institutional_rules, faculty_leaves, faculty, faculty_preferences,
-    students
+    students, faculty_courses
 )
 
 # Create main API router for version 1
@@ -43,6 +43,7 @@ api_router.include_router(users.router, prefix="/users", tags=["users"])
 # Epic 4: Faculty Management (CRUD + workload)
 api_router.include_router(faculty.router, prefix="/faculty", tags=["faculty"])
 api_router.include_router(faculty_preferences.router, prefix="/faculty-preferences", tags=["faculty-preferences"])
+api_router.include_router(faculty_courses.router, prefix="/faculty-courses", tags=["faculty-courses"])
 
 # Student Management (CRUD)
 api_router.include_router(students.router, prefix="/students", tags=["students"])
